@@ -2,10 +2,12 @@
   registryservice:
     image: registryservice
     ports:
-      - "7000:8080"
+      - "7000:5118"
     build:
       context: .
       dockerfile: RegistryService/Dockerfile
+    networks:
+      - network-micromart
 
   taxcalculatorapi:
     image: taxcalculatorapi
@@ -14,6 +16,8 @@
       dockerfile: TaxCalculatorApi/Dockerfile
     depends_on:
       - registryservice
+    networks:
+      - network-micromart
 
   invoicenumbergeneratorapi:
     image: invoicenumbergeneratorapi
@@ -22,6 +26,8 @@
       dockerfile: InvoiceNumberGeneratorApi/Dockerfile
     depends_on:
       - registryservice
+    networks:
+      - network-micromart
 
   discountengineapi:
     image: discountengineapi
@@ -30,3 +36,10 @@
       dockerfile: DiscountEngineApi/Dockerfile
     depends_on:
       - registryservice
+    networks:
+      - network-micromart
+
+networks:
+  network-micromart:
+    driver: 
+      bridge
