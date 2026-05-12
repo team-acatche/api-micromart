@@ -1,5 +1,9 @@
 ﻿namespace RegistryService.Core;
 
+/// <summary>
+/// A default Response type for all endpoints in the API Micromart.
+/// </summary>
+/// <typeparam name="T">type of the response body.</typeparam>
 public record ApiResponse<T>
 {
     public required bool Success { get; init; }
