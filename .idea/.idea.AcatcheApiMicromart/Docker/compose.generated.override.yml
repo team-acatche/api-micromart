@@ -1,0 +1,78 @@
+# This is a generated file. Not intended for manual editing.
+services:
+  discountengineapi:
+    build:
+      context: "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart"
+      dockerfile: "DiscountEngineApi/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net10.0/DiscountEngineApi.dll"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "discountengineapi:dev"
+    ports: []
+    volumes:
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart\\DiscountEngineApi:/app:rw"
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart:/src:rw"
+    - "C:\\Users\\pokem\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  invoicenumbergeneratorapi:
+    build:
+      context: "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart"
+      dockerfile: "InvoiceNumberGeneratorApi/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net10.0/InvoiceNumberGeneratorApi.dll"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "invoicenumbergeneratorapi:dev"
+    ports: []
+    volumes:
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart\\InvoiceNumberGeneratorApi:/app:rw"
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart:/src:rw"
+    - "C:\\Users\\pokem\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  registryservice:
+    build:
+      context: "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart"
+      dockerfile: "RegistryService/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net10.0/RegistryService.dll"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "registryservice:dev"
+    ports: []
+    volumes:
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart\\RegistryService:/app:rw"
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart:/src:rw"
+    - "C:\\Users\\pokem\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"
+  taxcalculatorapi:
+    build:
+      context: "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart"
+      dockerfile: "TaxCalculatorApi/Dockerfile"
+      target: "base"
+    command: []
+    entrypoint:
+    - "dotnet"
+    - "/app/bin/Debug/net10.0/TaxCalculatorApi.dll"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    image: "taxcalculatorapi:dev"
+    ports: []
+    volumes:
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart\\TaxCalculatorApi:/app:rw"
+    - "S:\\Projects\\academics\\software-development\\AcatcheApiMicromart:/src:rw"
+    - "C:\\Users\\pokem\\.nuget\\packages:/home/app/.nuget/packages"
+    working_dir: "/app"

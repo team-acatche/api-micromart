@@ -1,5 +1,9 @@
 using Scalar.AspNetCore;
+
 using TaxCalculatorApi;
+using TaxCalculatorApi.Core;
+using TaxCalculatorApi.Models;
+using TaxCalculatorApi.Models.Errors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,42 +11,41 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-var app = builder.Build();
+var api = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (api.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    api.MapOpenApi();
+    api.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+api.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+var app = api.MapGroup("api/v1");
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/calculate", IResult (TaxCalculationRequest request) =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        if (request.Price < 0)
+        {
+            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse>()
+            {
+                ComponentName = "TaxCalculator",
+                Success = false,
+                Error = new InitialPriceBelowZeroError(request.Price),
+            });
+        }
+        
+        var totalPrice = TaxCalculator.Calculate(request.Price, request.RegionCode);
+        return TypedResults.Ok(new ApiResponse<TaxCalculationResponse>()
+        {
+            ComponentName = "TaxCalculator",
+            Success = true,
+            Result = new TaxCalculationResponse(request, TaxCalculator.GetTaxRate(request.RegionCode), totalPrice)
+        });
     })
-    .WithName("GetWeatherForecast");
+    .Produces<ApiResponse<TaxCalculationResponse>>()
+    .Produces<ApiResponse<TaxCalculationResponse>>(StatusCodes.Status400BadRequest)
+    .WithName("CalculateTax");
 
-app.Run();
-
-namespace TaxCalculatorApi
-{
-    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}
+api.Run();
