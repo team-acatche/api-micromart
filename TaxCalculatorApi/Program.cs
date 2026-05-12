@@ -1,5 +1,4 @@
 using Scalar.AspNetCore;
-
 using TaxCalculatorApi;
 using TaxCalculatorApi.Core;
 using TaxCalculatorApi.Models;
@@ -27,21 +26,28 @@ var app = api.MapGroup("api/v1");
 app.MapPost("/calculate", IResult (TaxCalculationRequest request) =>
     {
         if (request.Price < 0)
-        {
             return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse>()
             {
                 ComponentName = "TaxCalculator",
                 Success = false,
                 Error = new InitialPriceBelowZeroError(request.Price),
             });
-        }
-        
-        var totalPrice = TaxCalculator.Calculate(request.Price, request.RegionCode);
+
+        if (!TaxCalculator.SupportedRegions.Contains(request.RegionCode))
+            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse>()
+            {
+                ComponentName = "TaxCalculator",
+                Success = false,
+                Error = new UnsupportedRegionCodeError(request.RegionCode),
+            });
+
+        var regionCode = Enum.Parse<TaxCalculator.RegionCode>(request.RegionCode, ignoreCase: true);
+        var totalPrice = TaxCalculator.Calculate(request.Price, regionCode);
         return TypedResults.Ok(new ApiResponse<TaxCalculationResponse>()
         {
             ComponentName = "TaxCalculator",
             Success = true,
-            Result = new TaxCalculationResponse(request, TaxCalculator.GetTaxRate(request.RegionCode), totalPrice)
+            Result = new TaxCalculationResponse(request, TaxCalculator.GetTaxRate(regionCode), totalPrice)
         });
     })
     .Produces<ApiResponse<TaxCalculationResponse>>()

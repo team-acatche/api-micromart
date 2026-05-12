@@ -35,6 +35,8 @@ public abstract class TaxCalculator
         { RegionCode.UsHi, 0.45m },
     };
 
+    public static readonly string[] SupportedRegions = Enum.GetNames<RegionCode>().Select(JsonNamingPolicy.KebabCaseUpper.ConvertName).ToArray();
+
     /// <summary>
     /// Obtain a region's sales tax rate.
     /// </summary>
