@@ -2,6 +2,19 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcatcheApiMicromart", "AcatcheApiMicromart\AcatcheApiMicromart.csproj", "{9A887F2B-5879-48AF-8413-487FC607A0FF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegistryService", "RegistryService\RegistryService.csproj", "{DD611018-AF65-408A-9148-E83B8E961457}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DB4BBF3B-5714-49B4-9F20-55246141C4DA}"
+	ProjectSection(SolutionItems) = preProject
+		compose.yaml = compose.yaml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxCalculatorApi", "TaxCalculatorApi\TaxCalculatorApi.csproj", "{19F387CE-377E-4EE4-99E5-476D8FE10A96}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceNumberGeneratorApi", "InvoiceNumberGeneratorApi\InvoiceNumberGeneratorApi.csproj", "{4B3C9AD9-31BC-4072-8360-5D70234185CF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscountEngineApi", "DiscountEngineApi\DiscountEngineApi.csproj", "{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +25,21 @@ Global
 		{9A887F2B-5879-48AF-8413-487FC607A0FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A887F2B-5879-48AF-8413-487FC607A0FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A887F2B-5879-48AF-8413-487FC607A0FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD611018-AF65-408A-9148-E83B8E961457}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD611018-AF65-408A-9148-E83B8E961457}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD611018-AF65-408A-9148-E83B8E961457}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD611018-AF65-408A-9148-E83B8E961457}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19F387CE-377E-4EE4-99E5-476D8FE10A96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19F387CE-377E-4EE4-99E5-476D8FE10A96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19F387CE-377E-4EE4-99E5-476D8FE10A96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19F387CE-377E-4EE4-99E5-476D8FE10A96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B3C9AD9-31BC-4072-8360-5D70234185CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B3C9AD9-31BC-4072-8360-5D70234185CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B3C9AD9-31BC-4072-8360-5D70234185CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B3C9AD9-31BC-4072-8360-5D70234185CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

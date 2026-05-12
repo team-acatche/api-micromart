@@ -1,0 +1,32 @@
+﻿services:
+  registryservice:
+    image: registryservice
+    ports:
+      - "7000:8080"
+    build:
+      context: .
+      dockerfile: RegistryService/Dockerfile
+
+  taxcalculatorapi:
+    image: taxcalculatorapi
+    build:
+      context: .
+      dockerfile: TaxCalculatorApi/Dockerfile
+    depends_on:
+      - registryservice
+
+  invoicenumbergeneratorapi:
+    image: invoicenumbergeneratorapi
+    build:
+      context: .
+      dockerfile: InvoiceNumberGeneratorApi/Dockerfile
+    depends_on:
+      - registryservice
+
+  discountengineapi:
+    image: discountengineapi
+    build:
+      context: .
+      dockerfile: DiscountEngineApi/Dockerfile
+    depends_on:
+      - registryservice
