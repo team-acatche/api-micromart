@@ -28,7 +28,7 @@ app.MapPost("/generate", IResult (ISequenceNumberService numberService, InvoiceN
     {
         var dayToday = DateTimeOffset.Now.Date.ToString("yyyyMMdd");
         var invoiceNumber =
-            $"{request.Prefix}-{request.ClientCode}-{dayToday}-{numberService.GetAndIncrementSequenceNumber()}";
+            $"{request.Prefix}-{request.ClientCode}-{dayToday}-{numberService.GetAndIncrementSequenceNumber():D5}";
         return TypedResults.Ok(invoiceNumber);
     })
     .Produces<string>()
