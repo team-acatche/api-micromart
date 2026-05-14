@@ -1,4 +1,6 @@
 using InvoiceNumberGeneratorApi;
+using InvoiceNumberGeneratorApi.Models;
+using InvoiceNumberGeneratorApi.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,43 +8,34 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<ISequenceNumberService, InvoiceSequenceNumberService>();
 
-var app = builder.Build();
+var api = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (api.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    api.MapOpenApi();
+    api.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+api.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+var app = api.MapGroup("api/invoice");
 
-app.MapGet("/weatherforecast", () =>
+// add endpoints here
+app.MapPost("/generate", IResult (ISequenceNumberService numberService, InvoiceNumberGeneratorRequest request) =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        var dayToday = DateTimeOffset.Now.Date.ToString("yyyyMMdd");
+        var invoiceNumber =
+            $"{request.Prefix}-{request.ClientCode}-{dayToday}-{numberService.GetAndIncrementSequenceNumber()}";
+        return TypedResults.Ok(invoiceNumber);
     })
-    .WithName("GetWeatherForecast");
+    .Produces<string>()
+    .WithName("GenerateInvoiceNumber");
 
-app.Run();
+app.MapGet("/counter", IResult (ISequenceNumberService numberService) => TypedResults.Ok(numberService.GetSequenceNumber()))
+    .Produces<int>()
+    .WithName("GetCurrentSequenceNumber");
 
-namespace InvoiceNumberGeneratorApi
-{
-    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}
+api.Run();
