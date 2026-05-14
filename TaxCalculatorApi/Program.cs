@@ -21,7 +21,7 @@ if (api.Environment.IsDevelopment())
 
 api.UseHttpsRedirection();
 
-var app = api.MapGroup("api/v1");
+var app = api.MapGroup("api/tax");
 
 app.MapPost("/calculate", IResult (TaxCalculationRequest request) =>
     {
