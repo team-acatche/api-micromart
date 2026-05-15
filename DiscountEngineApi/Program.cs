@@ -1,4 +1,8 @@
 using DiscountEngineApi;
+using DiscountEngineApi.Core;
+using DiscountEngineApi.Models;
+using DiscountEngineApi.Models.Errors;
+using DiscountEngineApi.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,43 +10,57 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddTransient<IDiscountResolver, BaseDiscountResolver>();
 
-var app = builder.Build();
+var api = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (api.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    api.MapOpenApi();
+    api.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+api.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+var app = api.MapGroup("api/discount");
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/apply", IResult (IDiscountResolver discountResolver, DiscountEngineRequest request) =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        if (request.OriginalPrice < 0)
+        {
+            return TypedResults.BadRequest(new ApiResponse<DiscountEngineResponse>
+            {
+                ComponentName = "DiscountEngine",
+                Success = false,
+                Error = new InitialPriceBelowZeroError(request.OriginalPrice),
+            });
+        }
+
+        if (!discountResolver.IsValidDiscount(request.DiscountCode))
+        {
+            return TypedResults.BadRequest(new ApiResponse<DiscountEngineResponse>
+            {
+                ComponentName = "DiscountEngine",
+                Success = false,
+                Error = new InvalidDiscountError(request.DiscountCode),
+            });
+        }
+
+        return TypedResults.Ok(new ApiResponse<DiscountEngineResponse>
+        {
+            ComponentName = "DiscountEngine",
+            Success = true,
+            Result = new DiscountEngineResponse
+            {
+                DiscountApplied = request.DiscountCode,
+                OriginalPrice = request.OriginalPrice,
+                FinalPrice = discountResolver.ResolveDiscount(request.OriginalPrice, request.DiscountCode),
+            },
+        });
     })
-    .WithName("GetWeatherForecast");
+    .Produces<ApiResponse<DiscountEngineResponse>>()
+    .Produces<ApiResponse<DiscountEngineResponse>>(StatusCodes.Status400BadRequest)
+    .WithName("ApplyDiscount");
 
-app.Run();
-
-namespace DiscountEngineApi
-{
-    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}
+api.Run();
