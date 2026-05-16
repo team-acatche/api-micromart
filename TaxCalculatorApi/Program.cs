@@ -37,22 +37,22 @@ app.MapGet("/regions", IResult (ITaxCalculator calculator) => TypedResults.Ok(ne
 app.MapGet("/rate/{regionCode}", IResult (ITaxCalculator calculator, string regionCode) =>
 {
     if (!calculator.GetRegions().Contains(regionCode))
-        return TypedResults.BadRequest(new ApiResponse<decimal?>()
+        return TypedResults.BadRequest(new ApiResponse<RatesEndpointResponse?>()
         {
             ComponentName = "TaxCalculator",
             Success = false,
             Error = new UnsupportedRegionCodeError(regionCode),
         });
 
-    return TypedResults.Ok(new ApiResponse<decimal>()
+    return TypedResults.Ok(new ApiResponse<RatesEndpointResponse>()
     {
         ComponentName = "TaxCalculator",
         Success = true,
-        Result = calculator.GetTaxRate(regionCode),
+        Result = new RatesEndpointResponse(regionCode, calculator.GetTaxRate(regionCode))
     });
 })
-    .Produces<ApiResponse<decimal>>()
-    .Produces<ApiResponse<decimal?>>(StatusCodes.Status400BadRequest)
+    .Produces<ApiResponse<RatesEndpointResponse>>()
+    .Produces<ApiResponse<RatesEndpointResponse?>>(StatusCodes.Status400BadRequest)
     .WithName("GetTaxRate");
 
 app.MapPost("/calculate", IResult (ITaxCalculator calculator, TaxCalculationRequest request) =>
