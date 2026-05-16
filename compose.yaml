@@ -1,43 +1,52 @@
 ﻿services:
-  registryservice:
-    image: registryservice
-    ports:
-      - "7000:5118"
-    build:
-      context: .
-      dockerfile: RegistryService/Dockerfile
-    networks:
-      - network-micromart
-
   taxcalculatorapi:
     image: taxcalculatorapi
+    ports:
+      - "60997:8080"
     build:
       context: .
       dockerfile: TaxCalculatorApi/Dockerfile
-    depends_on:
-      - registryservice
     networks:
       - network-micromart
 
   invoicenumbergeneratorapi:
     image: invoicenumbergeneratorapi
+    ports:
+      - "60998:8080"
     build:
       context: .
       dockerfile: InvoiceNumberGeneratorApi/Dockerfile
-    depends_on:
-      - registryservice
     networks:
       - network-micromart
 
   discountengineapi:
     image: discountengineapi
+    ports:
+      - "60999:8080"
     build:
       context: .
       dockerfile: DiscountEngineApi/Dockerfile
-    depends_on:
-      - registryservice
     networks:
       - network-micromart
+
+  registryservice:
+    image: registryservice
+    ports:
+      - "61000:8080"
+    environment:
+      - TAX_CALCULATOR_URI=http://localhost:60997
+      - INVOICE_NUMBER_GENERATOR_URI=http://localhost:60998
+      - DISCOUNT_ENGINE_URI=http://localhost:60999
+    build:
+      context: .
+      dockerfile: RegistryService/Dockerfile
+    depends_on:
+      - discountengineapi
+      - invoicenumbergeneratorapi
+      - taxcalculatorapi
+    networks:
+      - network-micromart
+
 
 networks:
   network-micromart:
