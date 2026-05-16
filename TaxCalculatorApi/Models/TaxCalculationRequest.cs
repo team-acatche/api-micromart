@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using TaxCalculatorApi.Services;
 
 namespace TaxCalculatorApi.Models;
 

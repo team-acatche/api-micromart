@@ -2,7 +2,7 @@
 
 public class InvoiceSequenceNumberService : ISequenceNumberService
 {
-    private int _sequenceNumber;
+    private int _sequenceNumber = 1;
 
     public int GetAndIncrementSequenceNumber()
     {

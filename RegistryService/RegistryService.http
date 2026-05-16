@@ -1,6 +1,0 @@
-@RegistryService_HostAddress = http://localhost:5118
-
-GET {{RegistryService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
