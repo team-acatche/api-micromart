@@ -1,14 +1,15 @@
 using Scalar.AspNetCore;
-using TaxCalculatorApi;
 using TaxCalculatorApi.Core;
 using TaxCalculatorApi.Models;
 using TaxCalculatorApi.Models.Errors;
+using TaxCalculatorApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<ITaxCalculator, TaxCalculator>();
 
 var api = builder.Build();
 
@@ -23,35 +24,49 @@ api.UseHttpsRedirection();
 
 var app = api.MapGroup("api/tax");
 
-app.MapPost("/calculate", IResult (TaxCalculationRequest request) =>
+app.MapGet("/regions", IResult (ITaxCalculator calculator) => TypedResults.Ok(new ApiResponse<List<string>>()
+    {
+        ComponentName = "TaxCalculator",
+        Success = true,
+        Result = calculator.GetRegions().ToList()
+    }))
+    .Produces<ApiResponse<List<string>>>()
+    .WithName("GetRegions");
+
+app.MapPost("/calculate", IResult (ITaxCalculator calculator, TaxCalculationRequest request) =>
     {
         if (request.Price < 0)
-            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse>()
+            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse?>()
             {
                 ComponentName = "TaxCalculator",
                 Success = false,
                 Error = new InitialPriceBelowZeroError(request.Price),
             });
 
-        if (!TaxCalculator.SupportedRegions.Contains(request.RegionCode))
-            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse>()
+        if (!calculator.GetRegions().Contains(request.RegionCode))
+            return TypedResults.BadRequest(new ApiResponse<TaxCalculationResponse?>()
             {
                 ComponentName = "TaxCalculator",
                 Success = false,
                 Error = new UnsupportedRegionCodeError(request.RegionCode),
             });
 
-        var regionCode = Enum.Parse<TaxCalculator.RegionCode>(request.RegionCode, ignoreCase: true);
-        var totalPrice = TaxCalculator.Calculate(request.Price, regionCode);
-        return TypedResults.Ok(new ApiResponse<TaxCalculationResponse>()
+        var response = new ApiResponse<TaxCalculationResponse>()
         {
             ComponentName = "TaxCalculator",
             Success = true,
-            Result = new TaxCalculationResponse(request, TaxCalculator.GetTaxRate(regionCode), totalPrice)
-        });
+            Result = new TaxCalculationResponse
+            {
+                InitialPrice = request.Price,
+                RegionCode = request.RegionCode,
+                TaxRate = calculator.GetTaxRate(request.RegionCode),
+                TotalPrice = calculator.Calculate(request.Price, request.RegionCode),
+            }
+        };
+        return TypedResults.Ok(response);
     })
     .Produces<ApiResponse<TaxCalculationResponse>>()
-    .Produces<ApiResponse<TaxCalculationResponse>>(StatusCodes.Status400BadRequest)
+    .Produces<ApiResponse<TaxCalculationResponse?>>(StatusCodes.Status400BadRequest)
     .WithName("CalculateTax");
 
 api.Run();
