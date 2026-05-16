@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
 using TaxCalculatorApi.Core;
 using TaxCalculatorApi.Models;
@@ -32,6 +33,27 @@ app.MapGet("/regions", IResult (ITaxCalculator calculator) => TypedResults.Ok(ne
     }))
     .Produces<ApiResponse<List<string>>>()
     .WithName("GetRegions");
+
+app.MapGet("/rate/{regionCode}", IResult (ITaxCalculator calculator, string regionCode) =>
+{
+    if (!calculator.GetRegions().Contains(regionCode))
+        return TypedResults.BadRequest(new ApiResponse<decimal?>()
+        {
+            ComponentName = "TaxCalculator",
+            Success = false,
+            Error = new UnsupportedRegionCodeError(regionCode),
+        });
+
+    return TypedResults.Ok(new ApiResponse<decimal>()
+    {
+        ComponentName = "TaxCalculator",
+        Success = true,
+        Result = calculator.GetTaxRate(regionCode),
+    });
+})
+    .Produces<ApiResponse<decimal>>()
+    .Produces<ApiResponse<decimal?>>(StatusCodes.Status400BadRequest)
+    .WithName("GetTaxRate");
 
 app.MapPost("/calculate", IResult (ITaxCalculator calculator, TaxCalculationRequest request) =>
     {
