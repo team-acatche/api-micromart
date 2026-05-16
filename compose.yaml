@@ -46,6 +46,18 @@
       - taxcalculatorapi
     networks:
       - network-micromart
+  
+  micromart:
+    image: micromart
+    ports:
+      - "61001:8080"
+    build:
+      context: .
+      dockerfile: AcatcheApiMicromart/Dockerfile
+    depends_on:
+      - registryservice
+    networks:
+      - network-micromart
 
 
 networks:
