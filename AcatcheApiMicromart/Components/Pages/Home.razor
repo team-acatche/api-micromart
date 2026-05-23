@@ -1,10 +1,177 @@
-﻿@page "/"
+﻿@rendermode InteractiveServer
+
+@page "/"
 @using System.Text
 @using System.Text.Json
 @using AcatcheApiMicromart.Core
-@rendermode InteractiveServer
+@using AcatcheApiMicromart.Models
+
 @inject HttpClient Http
 @inject IConfiguration Configuration
+
+@code {
+    private List<RegistryComponent> _components = [];
+    private bool _loading = true;
+    private string? _error;
+
+    private RegistryComponent? _activeComponent;
+    private EndpointDescription? _activeEndpoint;
+
+    private string _requestBody = "";
+    private string? _bodyError;
+    private bool _executing;
+    private string? _response;
+    private string? _responseError;
+    private int _responseStatus;
+
+    private string RegistryBaseUrl =>
+        Environment.GetEnvironmentVariable("REGISTRY_URI")
+        ?? Configuration["REGISTRY_URI"]
+        ?? "http://localhost:5118";
+
+    protected override async Task OnInitializedAsync() => await LoadComponents();
+
+    private async Task LoadComponents()
+    {
+        _loading = true;
+        _error = null;
+        _components = [];
+        StateHasChanged();
+
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RegistryComponent>>>(
+                $"{RegistryBaseUrl}/api/registry/components");
+            _components = resp?.Result ?? [];
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not reach Registry at {RegistryBaseUrl}. " +
+                     $"Make sure all services are running. ({ex.Message})";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleTryIt(RegistryComponent comp)
+    {
+        if (_activeComponent?.ComponentName == comp.ComponentName)
+        {
+            CloseTester();
+            return;
+        }
+
+        _activeComponent = comp;
+        _activeEndpoint = comp.Endpoints?.FirstOrDefault();
+        ResetTester();
+        if (_activeEndpoint != null) FillSample();
+    }
+
+    private void CloseTester()
+    {
+        _activeComponent = null;
+        _activeEndpoint = null;
+        ResetTester();
+    }
+
+    private void SelectEndpoint(EndpointDescription ep)
+    {
+        _activeEndpoint = ep;
+        ResetTester();
+        FillSample();
+    }
+
+    private void ResetTester()
+    {
+        _requestBody = "";
+        _bodyError = null;
+        _response = null;
+        _responseError = null;
+        _responseStatus = 0;
+        _executing = false;
+    }
+
+    private void FillSample()
+    {
+        if (!string.IsNullOrEmpty(_activeEndpoint?.SampleRequest))
+            _requestBody = FormatJson(_activeEndpoint.SampleRequest);
+    }
+
+    private async Task Execute()
+    {
+        if (_activeComponent == null || _activeEndpoint == null) return;
+
+        _bodyError = null;
+        _response = null;
+        _responseError = null;
+        _responseStatus = 0;
+        _executing = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"{_activeComponent.BaseUrl}{_activeEndpoint.Path}";
+            HttpResponseMessage httpResp;
+
+            if (_activeEndpoint.Method.ToUpper() == "GET")
+            {
+                httpResp = await Http.GetAsync(url);
+            }
+            else
+            {
+                // Validate JSON before sending
+                if (!string.IsNullOrWhiteSpace(_requestBody))
+                {
+                    try
+                    {
+                        JsonDocument.Parse(_requestBody);
+                    }
+                    catch
+                    {
+                        _bodyError = "Invalid JSON";
+                        _executing = false;
+                        return;
+                    }
+                }
+
+                var content = new StringContent(
+                    string.IsNullOrWhiteSpace(_requestBody) ? "{}" : _requestBody,
+                    Encoding.UTF8,
+                    "application/json");
+                httpResp = await Http.PostAsync(url, content);
+            }
+
+            _responseStatus = (int)httpResp.StatusCode;
+            var body = await httpResp.Content.ReadAsStringAsync();
+            _response = body;
+        }
+        catch (Exception ex)
+        {
+            _responseError = $"Request failed: {ex.Message}";
+        }
+        finally
+        {
+            _executing = false;
+        }
+    }
+
+    private static string FormatJson(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        try
+        {
+            var doc = JsonDocument.Parse(raw);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return raw.Trim();
+        }
+    }
+
+}
 
 <PageTitle>API Micromart</PageTitle>
 
@@ -35,13 +202,14 @@
                 else
                 {
                     <span class="status-badge status-ok">
-                        <span class="status-dot"></span> @_components.Count component@(_components.Count == 1 ? "" : "s") registered
+                        <span
+                            class="status-dot"></span> @_components.Count component@(_components.Count == 1 ? "" : "s") registered
                     </span>
                 }
                 <a class="registry-link" href="@RegistryBaseUrl/scalar" target="_blank" title="Open Registry Scalar UI">
                     Registry API ↗
                 </a>
-            </div>  
+            </div>
         </div>
     </header>
 
@@ -88,13 +256,15 @@
             <div class="component-grid">
                 @foreach (var comp in _components)
                 {
-                    <div class="component-card @(_activeComponent?.ComponentName == comp.ComponentName ? "is-active" : "")">
+                    <div
+                        class="component-card @(_activeComponent?.ComponentName == comp.ComponentName ? "is-active" : "")">
                         <div class="card-top">
                             <div class="card-identity">
                                 <span class="card-version">v@(comp.Version)</span>
                                 <h2 class="card-name">@comp.ComponentName</h2>
                             </div>
-                            <span class="card-endpoint-count">@(comp.Endpoints?.Count ?? 0) endpoint@(comp.Endpoints?.Count == 1 ? "" : "s")</span>
+                            <span
+                                class="card-endpoint-count">@(comp.Endpoints?.Count ?? 0) endpoint@(comp.Endpoints?.Count == 1 ? "" : "s")</span>
                         </div>
                         <p class="card-desc">@comp.Description</p>
                         <div class="card-endpoints">
@@ -106,8 +276,9 @@
                                 }
                             }
                         </div>
-                        <button class="btn-try @(_activeComponent?.ComponentName == comp.ComponentName ? "btn-try-active" : "")"
-                                @onclick="() => ToggleTryIt(comp)">
+                        <button
+                            class="btn-try @(_activeComponent?.ComponentName == comp.ComponentName ? "btn-try-active" : "")"
+                            @onclick="() => ToggleTryIt(comp)">
                             @if (_activeComponent?.ComponentName == comp.ComponentName)
                             {
                                 <span>✕ Close</span>
@@ -198,7 +369,8 @@
                                 {
                                     <div class="field-group">
                                         <label class="field-label">SAMPLE RESPONSE</label>
-                                        <pre class="response-block response-sample">@FormatJson(_activeEndpoint.SampleResponse)</pre>
+                                        <pre
+                                            class="response-block response-sample">@FormatJson(_activeEndpoint.SampleResponse)</pre>
                                     </div>
                                 }
 
@@ -209,7 +381,8 @@
                                             <label class="field-label">RESPONSE</label>
                                             @if (_responseStatus > 0)
                                             {
-                                                <span class="status-code @(_responseStatus < 300 ? "status-2xx" : "status-4xx")">
+                                                <span
+                                                    class="status-code @(_responseStatus < 300 ? "status-2xx" : "status-4xx")">
                                                     HTTP @_responseStatus
                                                 </span>
                                             }
@@ -220,7 +393,8 @@
                                         }
                                         else
                                         {
-                                            <pre class="response-block @(_responseStatus >= 400 ? "response-err-json" : "response-ok-json")">@FormatJson(_response!)</pre>
+                                            <pre
+                                                class="response-block @(_responseStatus >= 400 ? "response-err-json" : "response-ok-json")">@FormatJson(_response!)</pre>
                                         }
                                     </div>
                                 }
@@ -238,173 +412,3 @@
         <span>ASP.NET Core · Blazor · Docker</span>
     </footer>
 </div>
-
-@code {
-    private class RegistryComponent
-    {
-        public string ComponentName { get; set; } = "";
-        public string Description { get; set; } = "";
-        public string Version { get; set; } = "";
-        public string BaseUrl { get; set; } = "";
-        public List<EndpointDescription>? Endpoints { get; set; }
-    }
-
-    private class EndpointDescription
-    {
-        public string Path { get; set; } = "";
-        public string Method { get; set; } = "";
-        public string? SampleRequest { get; set; }
-        public string? SampleResponse { get; set; }
-    }
-
-    private List<RegistryComponent> _components = new();
-    private bool _loading = true;
-    private string? _error;
-
-    private RegistryComponent? _activeComponent;
-    private EndpointDescription? _activeEndpoint;
-
-    private string _requestBody = "";
-    private string? _bodyError;
-    private bool _executing;
-    private string? _response;
-    private string? _responseError;
-    private int _responseStatus;
-
-    private string RegistryBaseUrl =>
-        Configuration["REGISTRY_URI"] ?? "http://localhost:5118";
-
-    protected override async Task OnInitializedAsync() => await LoadComponents();
-
-    private async Task LoadComponents()
-    {
-        _loading = true;
-        _error = null;
-        _components = new();
-        StateHasChanged();
-
-        try
-        {
-            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RegistryComponent>>>(
-                $"{RegistryBaseUrl}/api/registry/components");
-            _components = resp?.Result ?? new();
-        }
-        catch (Exception ex)
-        {
-            _error = $"Could not reach Registry at {RegistryBaseUrl}. " +
-                     $"Make sure all services are running. ({ex.Message})";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private void ToggleTryIt(RegistryComponent comp)
-    {
-        if (_activeComponent?.ComponentName == comp.ComponentName)
-        {
-            CloseTester();
-            return;
-        }
-        _activeComponent = comp;
-        _activeEndpoint = comp.Endpoints?.FirstOrDefault();
-        ResetTester();
-        if (_activeEndpoint != null) FillSample();
-    }
-
-    private void CloseTester()
-    {
-        _activeComponent = null;
-        _activeEndpoint = null;
-        ResetTester();
-    }
-
-    private void SelectEndpoint(EndpointDescription ep)
-    {
-        _activeEndpoint = ep;
-        ResetTester();
-        FillSample();
-    }
-
-    private void ResetTester()
-    {
-        _requestBody = "";
-        _bodyError = null;
-        _response = null;
-        _responseError = null;
-        _responseStatus = 0;
-        _executing = false;
-    }
-
-    private void FillSample()
-    {
-        if (_activeEndpoint?.SampleRequest is { Length: > 0 } sample)
-            _requestBody = FormatJson(sample);
-    }
-
-    private async Task Execute()
-    {
-        if (_activeComponent == null || _activeEndpoint == null) return;
-
-        _bodyError = null;
-        _response = null;
-        _responseError = null;
-        _responseStatus = 0;
-        _executing = true;
-        StateHasChanged();
-
-        try
-        {
-            var url = $"{_activeComponent.BaseUrl}{_activeEndpoint.Path}";
-            HttpResponseMessage httpResp;
-
-            if (_activeEndpoint.Method.ToUpper() == "GET")
-            {
-                httpResp = await Http.GetAsync(url);
-            }
-            else
-            {
-                // Validate JSON before sending
-                if (!string.IsNullOrWhiteSpace(_requestBody))
-                {
-                    try { JsonDocument.Parse(_requestBody); }
-                    catch
-                    {
-                        _bodyError = "Invalid JSON";
-                        _executing = false;
-                        return;
-                    }
-                }
-
-                var content = new StringContent(
-                    string.IsNullOrWhiteSpace(_requestBody) ? "{}" : _requestBody,
-                    Encoding.UTF8, "application/json");
-                httpResp = await Http.PostAsync(url, content);
-            }
-
-            _responseStatus = (int)httpResp.StatusCode;
-            var body = await httpResp.Content.ReadAsStringAsync();
-            _response = body;
-        }
-        catch (Exception ex)
-        {
-            _responseError = $"Request failed: {ex.Message}";
-        }
-        finally
-        {
-            _executing = false;
-        }
-    }
-
-    private static string FormatJson(string raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw)) return raw;
-        try
-        {
-            var doc = JsonDocument.Parse(raw);
-            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
-        }
-        catch { return raw.Trim(); }
-    }
-}

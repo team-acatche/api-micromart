@@ -7,12 +7,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // HttpClient for calling the Registry and component APIs from Blazor server-side
-builder.Services.AddScoped(sp =>
-{
-    var client = new HttpClient();
-    // Allow the client to be used for any origin (registry, tax, invoice, discount)
-    return client;
-});
+builder.Services.AddScoped<HttpClient>();
 
 // Read registry URI from env or config
 builder.Configuration.AddEnvironmentVariables();
