@@ -1,7 +1,8 @@
 ﻿@page "/"
-@using System.Net.Http
 @using System.Text
 @using System.Text.Json
+@using AcatcheApiMicromart.Core
+@rendermode InteractiveServer
 @inject HttpClient Http
 @inject IConfiguration Configuration
 
@@ -239,7 +240,6 @@
 </div>
 
 @code {
-    // ── Models ────────────────────────────────────────────────────────────────
     private class RegistryComponent
     {
         public string ComponentName { get; set; } = "";
@@ -257,13 +257,6 @@
         public string? SampleResponse { get; set; }
     }
 
-    private class ApiWrapper<T>
-    {
-        public bool Success { get; set; }
-        public T? Result { get; set; }
-    }
-
-    // ── State ─────────────────────────────────────────────────────────────────
     private List<RegistryComponent> _components = new();
     private bool _loading = true;
     private string? _error;
@@ -281,7 +274,6 @@
     private string RegistryBaseUrl =>
         Configuration["REGISTRY_URI"] ?? "http://localhost:5118";
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync() => await LoadComponents();
 
     private async Task LoadComponents()
@@ -293,7 +285,7 @@
 
         try
         {
-            var resp = await Http.GetFromJsonAsync<ApiWrapper<List<RegistryComponent>>>(
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RegistryComponent>>>(
                 $"{RegistryBaseUrl}/api/registry/components");
             _components = resp?.Result ?? new();
         }
@@ -308,7 +300,6 @@
         }
     }
 
-    // ── Interactions ──────────────────────────────────────────────────────────
     private void ToggleTryIt(RegistryComponent comp)
     {
         if (_activeComponent?.ComponentName == comp.ComponentName)
@@ -406,7 +397,6 @@
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
     private static string FormatJson(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return raw;
