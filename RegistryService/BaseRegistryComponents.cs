@@ -4,7 +4,7 @@ namespace RegistryService;
 
 public abstract class BaseRegistryComponents
 {
-    public static List<RegistryComponent> Components = [
+    public static readonly List<RegistryComponent> Components = [
         new()
         {
             ComponentName = "DiscountEngine",
