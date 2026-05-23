@@ -12,6 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddTransient<IDiscountResolver, BaseDiscountResolver>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 var api = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -21,6 +29,7 @@ if (api.Environment.IsDevelopment())
     api.MapScalarApiReference();
 }
 
+api.UseCors();
 api.UseHttpsRedirection();
 
 var app = api.MapGroup("api/discount");

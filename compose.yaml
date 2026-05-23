@@ -34,9 +34,9 @@
     ports:
       - "61000:8080"
     environment:
-      - TAX_CALCULATOR_URI=http://localhost:60997
-      - INVOICE_NUMBER_GENERATOR_URI=http://localhost:60998
-      - DISCOUNT_ENGINE_URI=http://localhost:60999
+    - TAX_CALCULATOR_URI=http://localhost:60997
+    - INVOICE_NUMBER_GENERATOR_URI=http://localhost:60998
+    - DISCOUNT_ENGINE_URI=http://localhost:60999
     build:
       context: .
       dockerfile: RegistryService/Dockerfile
@@ -46,11 +46,14 @@
       - taxcalculatorapi
     networks:
       - network-micromart
-  
+
   micromart:
     image: micromart
     ports:
       - "61001:8080"
+    environment:
+      # The Blazor server fetches from the registry — use internal Docker hostname
+      - REGISTRY_URI=http://registryservice:8080
     build:
       context: .
       dockerfile: AcatcheApiMicromart/Dockerfile
@@ -59,8 +62,6 @@
     networks:
       - network-micromart
 
-
 networks:
   network-micromart:
-    driver: 
-      bridge
+    driver: bridge
