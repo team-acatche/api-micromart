@@ -1,7 +1,414 @@
-﻿@page "/"
+﻿@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+@page "/"
+@using System.Text
+@using System.Text.Json
+@using AcatcheApiMicromart.Core
+@using AcatcheApiMicromart.Models
 
-<h1>Hello, world!</h1>
+@inject HttpClient Http
+@inject IConfiguration Configuration
 
-Welcome to your new app.
+@code {
+    private List<RegistryComponent> _components = [];
+    private bool _loading = true;
+    private string? _error;
+
+    private RegistryComponent? _activeComponent;
+    private EndpointDescription? _activeEndpoint;
+
+    private string _requestBody = "";
+    private string? _bodyError;
+    private bool _executing;
+    private string? _response;
+    private string? _responseError;
+    private int _responseStatus;
+
+    private string RegistryBaseUrl =>
+        Environment.GetEnvironmentVariable("REGISTRY_URI")
+        ?? Configuration["REGISTRY_URI"]
+        ?? "http://localhost:5118";
+
+    protected override async Task OnInitializedAsync() => await LoadComponents();
+
+    private async Task LoadComponents()
+    {
+        _loading = true;
+        _error = null;
+        _components = [];
+        StateHasChanged();
+
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<ApiResponse<List<RegistryComponent>>>(
+                $"{RegistryBaseUrl}/api/registry/components");
+            _components = resp?.Result ?? [];
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not reach Registry at {RegistryBaseUrl}. " +
+                     $"Make sure all services are running. ({ex.Message})";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleTryIt(RegistryComponent comp)
+    {
+        if (_activeComponent?.ComponentName == comp.ComponentName)
+        {
+            CloseTester();
+            return;
+        }
+
+        _activeComponent = comp;
+        _activeEndpoint = comp.Endpoints?.FirstOrDefault();
+        ResetTester();
+        if (_activeEndpoint != null) FillSample();
+    }
+
+    private void CloseTester()
+    {
+        _activeComponent = null;
+        _activeEndpoint = null;
+        ResetTester();
+    }
+
+    private void SelectEndpoint(EndpointDescription ep)
+    {
+        _activeEndpoint = ep;
+        ResetTester();
+        FillSample();
+    }
+
+    private void ResetTester()
+    {
+        _requestBody = "";
+        _bodyError = null;
+        _response = null;
+        _responseError = null;
+        _responseStatus = 0;
+        _executing = false;
+    }
+
+    private void FillSample()
+    {
+        if (!string.IsNullOrEmpty(_activeEndpoint?.SampleRequest))
+            _requestBody = FormatJson(_activeEndpoint.SampleRequest);
+    }
+
+    private async Task Execute()
+    {
+        if (_activeComponent == null || _activeEndpoint == null) return;
+
+        _bodyError = null;
+        _response = null;
+        _responseError = null;
+        _responseStatus = 0;
+        _executing = true;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"{_activeComponent.BaseUrl}{_activeEndpoint.Path}";
+            HttpResponseMessage httpResp;
+
+            if (_activeEndpoint.Method.ToUpper() == "GET")
+            {
+                httpResp = await Http.GetAsync(url);
+            }
+            else
+            {
+                // Validate JSON before sending
+                if (!string.IsNullOrWhiteSpace(_requestBody))
+                {
+                    try
+                    {
+                        JsonDocument.Parse(_requestBody);
+                    }
+                    catch
+                    {
+                        _bodyError = "Invalid JSON";
+                        _executing = false;
+                        return;
+                    }
+                }
+
+                var content = new StringContent(
+                    string.IsNullOrWhiteSpace(_requestBody) ? "{}" : _requestBody,
+                    Encoding.UTF8,
+                    "application/json");
+                httpResp = await Http.PostAsync(url, content);
+            }
+
+            _responseStatus = (int)httpResp.StatusCode;
+            var body = await httpResp.Content.ReadAsStringAsync();
+            _response = body;
+        }
+        catch (Exception ex)
+        {
+            _responseError = $"Request failed: {ex.Message}";
+        }
+        finally
+        {
+            _executing = false;
+        }
+    }
+
+    private static string FormatJson(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        try
+        {
+            var doc = JsonDocument.Parse(raw);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return raw.Trim();
+        }
+    }
+
+}
+
+<PageTitle>API Micromart</PageTitle>
+
+<div class="micromart-root">
+
+    <header class="mart-header">
+        <div class="mart-header-inner">
+            <div class="mart-logo">
+                <span class="mart-logo-icon">⬡</span>
+                <div>
+                    <span class="mart-logo-title">API Micromart</span>
+                    <span class="mart-logo-sub">Reusable Business Components</span>
+                </div>
+            </div>
+            <div class="mart-header-meta">
+                @if (_loading)
+                {
+                    <span class="status-badge status-loading">
+                        <span class="status-dot pulsing"></span> Connecting…
+                    </span>
+                }
+                else if (_error != null)
+                {
+                    <span class="status-badge status-error">
+                        <span class="status-dot"></span> Registry Offline
+                    </span>
+                }
+                else
+                {
+                    <span class="status-badge status-ok">
+                        <span
+                            class="status-dot"></span> @_components.Count component@(_components.Count == 1 ? "" : "s") registered
+                    </span>
+                }
+                <a class="registry-link" href="@RegistryBaseUrl/scalar" target="_blank" title="Open Registry Scalar UI">
+                    Registry API ↗
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mart-main">
+
+        @if (_loading)
+        {
+            <div class="skeleton-grid">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <div class="skeleton-card">
+                        <div class="skeleton-line w60"></div>
+                        <div class="skeleton-line w90"></div>
+                        <div class="skeleton-line w75"></div>
+                        <div class="skeleton-line w40 mt-auto"></div>
+                    </div>
+                }
+            </div>
+        }
+        else if (_error != null)
+        {
+            <div class="empty-state error-state">
+                <span class="empty-icon">⚠</span>
+                <p class="empty-title">Registry Unreachable</p>
+                <p class="empty-desc">@_error</p>
+                <button class="btn-retry" @onclick="LoadComponents">Retry</button>
+            </div>
+        }
+        else if (!_components.Any())
+        {
+            <div class="empty-state">
+                <span class="empty-icon">◻</span>
+                <p class="empty-title">No components registered</p>
+                <p class="empty-desc">The registry returned an empty list.</p>
+            </div>
+        }
+        else
+        {
+            <div class="section-label">
+                <span>COMPONENTS</span>
+                <span class="section-count">@_components.Count</span>
+            </div>
+
+            <div class="component-grid">
+                @foreach (var comp in _components)
+                {
+                    <div
+                        class="component-card @(_activeComponent?.ComponentName == comp.ComponentName ? "is-active" : "")">
+                        <div class="card-top">
+                            <div class="card-identity">
+                                <span class="card-version">v@(comp.Version)</span>
+                                <h2 class="card-name">@comp.ComponentName</h2>
+                            </div>
+                            <span
+                                class="card-endpoint-count">@(comp.Endpoints?.Count ?? 0) endpoint@(comp.Endpoints?.Count == 1 ? "" : "s")</span>
+                        </div>
+                        <p class="card-desc">@comp.Description</p>
+                        <div class="card-endpoints">
+                            @if (comp.Endpoints != null)
+                            {
+                                @foreach (var ep in comp.Endpoints)
+                                {
+                                    <span class="ep-tag ep-@ep.Method.ToLower()">@ep.Method @ep.Path</span>
+                                }
+                            }
+                        </div>
+                        <button
+                            class="btn-try @(_activeComponent?.ComponentName == comp.ComponentName ? "btn-try-active" : "")"
+                            @onclick="() => ToggleTryIt(comp)">
+                            @if (_activeComponent?.ComponentName == comp.ComponentName)
+                            {
+                                <span>✕ Close</span>
+                            }
+                            else
+                            {
+                                <span>▶ Try It</span>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+
+            @if (_activeComponent != null)
+            {
+                <div class="tester-panel" id="tester-panel">
+                    <div class="tester-header">
+                        <div class="tester-title">
+                            <span class="tester-icon">⌨</span>
+                            <span>@_activeComponent.ComponentName</span>
+                            <span class="tester-subtitle">Interactive Tester</span>
+                        </div>
+                        <button class="tester-close" @onclick="CloseTester">✕</button>
+                    </div>
+
+                    @if (_activeComponent.Endpoints != null && _activeComponent.Endpoints.Any())
+                    {
+                        <div class="endpoint-tabs">
+                            @foreach (var ep in _activeComponent.Endpoints)
+                            {
+                                <button class="ep-tab @(_activeEndpoint == ep ? "ep-tab-active" : "")"
+                                        @onclick="() => SelectEndpoint(ep)">
+                                    <span class="ep-method ep-@ep.Method.ToLower()">@ep.Method</span>
+                                    <span class="ep-path-label">@ep.Path</span>
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    @if (_activeEndpoint != null)
+                    {
+                        <div class="tester-body">
+                            <div class="tester-left">
+                                <div class="field-group">
+                                    <label class="field-label">BASE URL</label>
+                                    <div class="url-display">@_activeComponent.BaseUrl@_activeEndpoint.Path</div>
+                                </div>
+
+                                @if (_activeEndpoint.Method.ToUpper() != "GET")
+                                {
+                                    <div class="field-group">
+                                        <div class="field-label-row">
+                                            <label class="field-label">REQUEST BODY</label>
+                                            @if (!string.IsNullOrEmpty(_activeEndpoint.SampleRequest))
+                                            {
+                                                <button class="btn-fill-sample" @onclick="FillSample">↺ Sample</button>
+                                            }
+                                        </div>
+                                        <textarea class="request-editor" rows="8"
+                                                  @bind="_requestBody"
+                                                  @bind:event="oninput"
+                                                  placeholder='{ "key": "value" }'
+                                                  spellcheck="false"></textarea>
+                                        @if (!string.IsNullOrEmpty(_bodyError))
+                                        {
+                                            <span class="body-error">⚠ @_bodyError</span>
+                                        }
+                                    </div>
+                                }
+
+                                <button class="btn-execute @(_executing ? "btn-executing" : "")"
+                                        @onclick="Execute"
+                                        disabled="@_executing">
+                                    @if (_executing)
+                                    {
+                                        <span class="spinner"></span>
+                                        <span>Executing…</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Execute</span>
+                                    }
+                                </button>
+                            </div>
+
+                            <div class="tester-right">
+                                @if (_activeEndpoint.SampleResponse != null && _response == null && !_executing)
+                                {
+                                    <div class="field-group">
+                                        <label class="field-label">SAMPLE RESPONSE</label>
+                                        <pre
+                                            class="response-block response-sample">@FormatJson(_activeEndpoint.SampleResponse)</pre>
+                                    </div>
+                                }
+
+                                @if (_response != null || _responseError != null)
+                                {
+                                    <div class="field-group">
+                                        <div class="field-label-row">
+                                            <label class="field-label">RESPONSE</label>
+                                            @if (_responseStatus > 0)
+                                            {
+                                                <span
+                                                    class="status-code @(_responseStatus < 300 ? "status-2xx" : "status-4xx")">
+                                                    HTTP @_responseStatus
+                                                </span>
+                                            }
+                                        </div>
+                                        @if (_responseError != null)
+                                        {
+                                            <div class="response-block response-err">@_responseError</div>
+                                        }
+                                        else
+                                        {
+                                            <pre
+                                                class="response-block @(_responseStatus >= 400 ? "response-err-json" : "response-ok-json")">@FormatJson(_response!)</pre>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </main>
+
+    <footer class="mart-footer">
+        <span>API Micromart — Acatche Team</span>
+        <span class="footer-sep">·</span>
+        <span>ASP.NET Core · Blazor · Docker</span>
+    </footer>
+</div>

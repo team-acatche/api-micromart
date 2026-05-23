@@ -12,6 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<ISequenceNumberService, InvoiceSequenceNumberService>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 var api = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -21,6 +29,7 @@ if (api.Environment.IsDevelopment())
     api.MapScalarApiReference();
 }
 
+api.UseCors();
 api.UseHttpsRedirection();
 
 var app = api.MapGroup("api/invoice");
@@ -36,7 +45,7 @@ app.MapPost("/generate", IResult (ISequenceNumberService numberService, InvoiceN
 
             var emptyFields = fieldNames.Where(((_, idx) => emptyFieldsFlag[idx]))
                 .ToArray();
-            
+
             return TypedResults.BadRequest(new ApiResponse<string>()
             {
                 ComponentName = "InvoiceNumberGenerator",
@@ -44,7 +53,7 @@ app.MapPost("/generate", IResult (ISequenceNumberService numberService, InvoiceN
                 Error = new EmptyFieldError(emptyFields),
             });
         }
-        
+
         var dayToday = DateTimeOffset.Now.Date.ToString("yyyyMMdd");
         var invoiceNumber =
             $"{request.Prefix}-{request.ClientCode}-{dayToday}-{numberService.GetAndIncrementSequenceNumber():D5}";

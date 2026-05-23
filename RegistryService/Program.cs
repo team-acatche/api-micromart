@@ -16,6 +16,15 @@ builder.Services.AddSingleton<IRegistryService>(new BaseRegistryService()
     Components = BaseRegistryComponents.Components,
 });
 
+// Allow any origin so the Blazor frontend (and browser) can call this service
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -25,6 +34,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseCors();
 app.UseHttpsRedirection();
 
 var api = app.MapGroup("api/registry");
@@ -51,7 +61,7 @@ api.MapGet("/components/{name}", IResult (IRegistryService registryService, stri
                 Error = new ComponentNotFoundError(name),
             });
         }
-        
+
         return TypedResults.Ok(new ApiResponse<RegistryComponent>()
         {
             ComponentName = "Registry",
