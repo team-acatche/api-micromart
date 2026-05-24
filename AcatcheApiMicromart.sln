@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InvoiceNumberGeneratorApi",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscountEngineApi", "DiscountEngineApi\DiscountEngineApi.csproj", "{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationApi", "AuthenticationApi\AuthenticationApi.csproj", "{44118403-3537-4D0F-9010-F9E595DB96AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,5 +43,9 @@ Global
 		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8EFA6173-FDBF-4F63-A6A1-403B5741E2C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44118403-3537-4D0F-9010-F9E595DB96AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44118403-3537-4D0F-9010-F9E595DB96AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44118403-3537-4D0F-9010-F9E595DB96AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44118403-3537-4D0F-9010-F9E595DB96AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
