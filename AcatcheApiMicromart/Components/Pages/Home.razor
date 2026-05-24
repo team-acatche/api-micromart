@@ -3,6 +3,7 @@
 @page "/"
 @using System.Text
 @using System.Text.Json
+@using System.Text.RegularExpressions
 @using AcatcheApiMicromart.Core
 @using AcatcheApiMicromart.Models
 
@@ -17,7 +18,8 @@
     private RegistryComponent? _activeComponent;
     private EndpointDescription? _activeEndpoint;
 
-    private string _requestBody = "";
+    private string _requestBody = string.Empty;
+    private Dictionary<string, string> _pathParams = new();
     private string? _bodyError;
     private bool _executing;
     private string? _response;
@@ -86,6 +88,7 @@
     private void ResetTester()
     {
         _requestBody = "";
+        _pathParams = new Dictionary<string, string>();
         _bodyError = null;
         _response = null;
         _responseError = null;
@@ -117,7 +120,12 @@
 
             if (_activeEndpoint.Method.ToUpper() == "GET")
             {
-                httpResp = await Http.GetAsync(url);
+                var filledUrl = url;
+                foreach (var entry in _pathParams)
+                {
+                    filledUrl = Regex.Replace(url, "{" + entry.Key + "}", entry.Value);
+                }
+                httpResp = await Http.GetAsync(filledUrl);
             }
             else
             {
@@ -143,7 +151,7 @@
                 httpResp = await Http.PostAsync(url, content);
             }
 
-            _responseStatus = (int)httpResp.StatusCode;
+            _responseStatus = (int) httpResp.StatusCode;
             var body = await httpResp.Content.ReadAsStringAsync();
             _response = body;
         }
@@ -153,8 +161,17 @@
         }
         finally
         {
+            _pathParams = new Dictionary<string, string>();
             _executing = false;
         }
+    }
+
+    private static List<string> ExtractPathParams(string path)
+    {
+        const string pathParameterPattern = @"\{(?<param_name>.+?)\}";
+        return Regex.Matches(path, pathParameterPattern)
+            .Select(match => match.Groups["param_name"].Value)
+            .ToList();
     }
 
     private static string FormatJson(string raw)
@@ -348,7 +365,27 @@
                                         }
                                     </div>
                                 }
+                                
+                                @foreach (var pathParameter in ExtractPathParams(_activeEndpoint.Path))
+                                {
+                                    _pathParams.TryAdd(pathParameter, string.Empty);
 
+                                    <div class="field-group">
+                                        <div class="field-label-row">
+                                            <label class="field-label">@pathParameter.ToUpper()</label>
+                                        </div>
+                                        <input type="text"
+                                               @bind="_pathParams[pathParameter]"
+                                               @bind:event="oninput"
+                                               class="request-editor"
+                                               spellcheck="false"/>
+                                        @if (!string.IsNullOrEmpty(_bodyError))
+                                        {
+                                            <span class="body-error">⚠ @_bodyError</span>
+                                        }
+                                    </div>
+                                }
+                                
                                 <button class="btn-execute @(_executing ? "btn-executing" : "")"
                                         @onclick="Execute"
                                         disabled="@_executing">
