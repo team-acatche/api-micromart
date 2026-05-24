@@ -7,6 +7,60 @@ public abstract class BaseRegistryComponents
     public static readonly List<RegistryComponent> Components = [
         new()
         {
+            ComponentName = "Authenticator",
+            Description = "A basic authentication API that can perform in-memory registrations and token-based logins with salted passwords and hashing.",
+            Version = "1",
+            BaseUrl = Environment.GetEnvironmentVariable("AUTHENTICATION_URI") ?? "http://localhost:5087",
+            Endpoints = [
+                new EndpointDescription
+                {
+                    Method = "POST",
+                    Path = "/api/authenticate/login",
+                    SampleRequest = """
+                                    {
+                                        "username": "john",
+                                        "password": "password",
+                                    }
+                                    """,
+                    SampleResponse = """
+                                     {
+                                        "componentName": "Authenticator",
+                                        "success": true,
+                                        "result": {
+                                            "token": "...",
+                                            "userId": 1,
+                                            "username": "john
+                                        },
+                                        "error": null
+                                     }
+                                     """
+                },
+                new EndpointDescription
+                {
+                    Method = "POST",
+                    Path = "/api/authenticate/register",
+                    SampleRequest = """
+                                    {
+                                        "username": "john",
+                                        "password": "password",
+                                    }
+                                    """,
+                    SampleResponse = """
+                                     {
+                                        "componentName": "Authenticator",
+                                        "success": true,
+                                        "result": {
+                                            "userId": 1,
+                                            "username": "john
+                                        },
+                                        "error": null
+                                     }
+                                     """
+                }
+            ]
+        },
+        new()
+        {
             ComponentName = "DiscountEngine",
             Description = "The discount engine API that is responsible for applying discounts on initial prices.",
             Version = "1",
