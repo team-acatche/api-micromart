@@ -4,6 +4,8 @@ namespace RegistryService;
 
 public abstract class BaseRegistryComponents
 {
+    private static string ProxyBase =>
+        Environment.GetEnvironmentVariable("PROXY_BASE_URI") ?? "http://localhost:5194";
     public static readonly List<RegistryComponent> Components = [
         new()
         {
@@ -64,7 +66,10 @@ public abstract class BaseRegistryComponents
             ComponentName = "DiscountEngine",
             Description = "The discount engine API that is responsible for applying discounts on initial prices.",
             Version = "1",
-            BaseUrl = Environment.GetEnvironmentVariable("DISCOUNT_ENGINE_URI") ?? "http://localhost:5192",
+            BaseUrl = Environment.GetEnvironmentVariable("DISCOUNT_ENGINE_URI") 
+                      ?? "http://localhost:5192",
+            InternalUrl = Environment.GetEnvironmentVariable("DISCOUNT_ENGINE_INTERNAL_URI") 
+                          ?? "http://localhost:5192",
             Endpoints = [
                 new EndpointDescription
                 {
@@ -93,11 +98,14 @@ public abstract class BaseRegistryComponents
         },
         new()
         {
-           ComponentName = "InvoiceNumberGenerator",
-           Description = "The invoice number generator responsible for generating invoice numbers statefully.",
-           Version = "1",
-           BaseUrl = Environment.GetEnvironmentVariable("INVOICE_NUMBER_GENERATOR_URI") ?? "http://localhost:5024",
-           Endpoints = [
+            ComponentName = "InvoiceNumberGenerator",
+            Description = "The invoice number generator responsible for generating invoice numbers statefully.",
+            Version = "1",
+            BaseUrl = Environment.GetEnvironmentVariable("INVOICE_NUMBER_GENERATOR_URI") 
+                      ?? "http://localhost:5024",
+            InternalUrl = Environment.GetEnvironmentVariable("INVOICE_NUMBER_GENERATOR_INTERNAL_URI") 
+                          ?? "http://localhost:5024",
+            Endpoints = [
                new EndpointDescription
                {
                    Method = "POST",
@@ -139,7 +147,10 @@ public abstract class BaseRegistryComponents
             ComponentName = "TaxCalculator",
             Description = "A simple sales tax calculator API supporting various region codes and sales tax rates.",
             Version = "1",
-            BaseUrl = Environment.GetEnvironmentVariable("TAX_CALCULATOR_URI") ?? "http://localhost:5266",
+            BaseUrl = Environment.GetEnvironmentVariable("TAX_CALCULATOR_URI") 
+                      ?? "http://localhost:5266",
+            InternalUrl = Environment.GetEnvironmentVariable("TAX_CALCULATOR_INTERNAL_URI") 
+                          ?? "http://localhost:5266",
             Endpoints = [
                 new EndpointDescription
                 {

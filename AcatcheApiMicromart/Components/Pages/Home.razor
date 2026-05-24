@@ -31,6 +31,11 @@
         ?? Configuration["REGISTRY_URI"]
         ?? "http://localhost:5118";
 
+    private string RegistryPublicUrl =>
+    Environment.GetEnvironmentVariable("REGISTRY_PUBLIC_URI")
+    ?? Configuration["REGISTRY_PUBLIC_URI"]
+    ?? RegistryBaseUrl; // falls back to RegistryBaseUrl for local dev
+
     protected override async Task OnInitializedAsync() => await LoadComponents();
 
     private async Task LoadComponents()
@@ -115,7 +120,7 @@
 
         try
         {
-            var url = $"{_activeComponent.BaseUrl}{_activeEndpoint.Path}";
+            var url = $"{_activeComponent.InternalUrl}{_activeEndpoint.Path}";
             HttpResponseMessage httpResp;
 
             if (_activeEndpoint.Method.ToUpper() == "GET")
@@ -199,7 +204,7 @@
             <div class="mart-logo">
                 <span class="mart-logo-icon">⬡</span>
                 <div>
-                    <span class="mart-logo-title">API Micromart</span>
+                    <span class="mart-logo-title">ABSOLEM — API Micromart</span>
                     <span class="mart-logo-sub">Reusable Business Components</span>
                 </div>
             </div>
@@ -223,9 +228,6 @@
                             class="status-dot"></span> @_components.Count component@(_components.Count == 1 ? "" : "s") registered
                     </span>
                 }
-                <a class="registry-link" href="@RegistryBaseUrl/scalar" target="_blank" title="Open Registry Scalar UI">
-                    Registry API ↗
-                </a>
             </div>
         </div>
     </header>
