@@ -3,6 +3,8 @@
     image: authenticationapi
     ports:
       - "60996:8080"
+    environment:
+      - TOKEN_EXPIRATION_MINUTES=5
     build:
       context: .
       dockerfile: AuthenticationApi/Dockerfile

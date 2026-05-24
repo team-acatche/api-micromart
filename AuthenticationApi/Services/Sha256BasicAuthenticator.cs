@@ -8,8 +8,10 @@ public class Sha256BasicAuthenticator : IBasicAuthenticator
 {
     private const int SaltLength = 7;
     private const int TokenLength = 32;
-    private const int TokenExpirationMinutes = 5;
-    
+
+    private static readonly int TokenExpirationMinutes =
+        Convert.ToInt32(Environment.GetEnvironmentVariable("TOKEN_EXPIRATION_MINUTES") ?? "5");
+
     private readonly SHA256 _hashFunction = SHA256.Create();
     private readonly Random _rng = new();
 
@@ -18,17 +20,17 @@ public class Sha256BasicAuthenticator : IBasicAuthenticator
         new(0, "admin", "sample_", "uo+L7ULDISZOkFUw3CH0a4vcbW9Ee/X4bgLcex+FWec="),
     ];
 
-    private Dictionary<int, Token> _validTokens = new();
+    private readonly Dictionary<int, Token> _validTokens = new();
 
     public Token? Login(string username, string password)
     {
         var user = _users.FirstOrDefault(x => x.Username == username);
-        
+
         if (user == null) return null;
         if (user.PasswordHash != HashPassword(password, user.Salt)) return null;
-        
+
         if (_validTokens.TryGetValue(user.UserId, out var loginToken)) return loginToken!;
-            
+
         var tokenString = GenerateRandomString(TokenLength);
         var expirationDate = DateTime.Now + TimeSpan.FromMinutes(TokenExpirationMinutes);
         var token = new Token(tokenString, expirationDate);
@@ -49,7 +51,7 @@ public class Sha256BasicAuthenticator : IBasicAuthenticator
 
         var salt = GenerateRandomString(SaltLength);
         var hashedPassword = HashPassword(password, salt);
-        
+
         var newUser = new User(_users.Count, username, salt, hashedPassword);
         _users.Add(newUser);
         return newUser;
