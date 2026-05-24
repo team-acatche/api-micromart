@@ -11,20 +11,38 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IBasicAuthenticator, Sha256BasicAuthenticator>();
 
-var app = builder.Build();
+var api = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (api.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    api.MapOpenApi();
+    api.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+api.UseHttpsRedirection();
 
-app.MapPost("/login", IResult (IBasicAuthenticator authenticator, LoginRequest loginRequest) =>
+var app = api.MapGroup("api/authenticate");
+
+app.MapPost("/login", IResult (IBasicAuthenticator authenticator, LoginRequest request) =>
 {
-    var userToken = authenticator.Login(loginRequest.username, loginRequest.password);
+    if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+    {
+        string[] fieldNames = ["username", "password"];
+        bool[] emptyFieldsFlag = [string.IsNullOrEmpty(request.Username), string.IsNullOrEmpty(request.Password)];
+
+        var emptyFields = fieldNames.Where(((_, idx) => emptyFieldsFlag[idx]))
+            .ToArray();
+
+        return TypedResults.BadRequest(new ApiResponse<LoginResponse?>()
+        {
+            ComponentName = "Authenticator",
+            Success = false,
+            Error = new EmptyFieldError(emptyFields),
+        });
+    }
+    
+    var userToken = authenticator.Login(request.Username, request.Password);
     if (userToken == null) return TypedResults.Unauthorized();
     
     var user = authenticator.GetUserFromToken(userToken.TokenString)!;
@@ -37,18 +55,34 @@ app.MapPost("/login", IResult (IBasicAuthenticator authenticator, LoginRequest l
     });
 })
     .Produces<ApiResponse<LoginResponse>>()
+    .Produces<ApiResponse<LoginResponse?>>(StatusCodes.Status400BadRequest)
     .Produces(StatusCodes.Status401Unauthorized)
     .WithName("Login");
 
 app.MapPost("/register", IResult (IBasicAuthenticator authenticator, RegisterRequest request) =>
     {
+        if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+        {
+            string[] fieldNames = ["username", "password"];
+            bool[] emptyFieldsFlag = [string.IsNullOrEmpty(request.Username), string.IsNullOrEmpty(request.Password)];
+
+            var emptyFields = fieldNames.Where(((_, idx) => emptyFieldsFlag[idx]))
+                .ToArray();
+
+            return TypedResults.BadRequest(new ApiResponse<RegisterResponse?>()
+            {
+                ComponentName = "Authenticator",
+                Success = false,
+                Error = new EmptyFieldError(emptyFields),
+            });
+        }
+        
         var user = authenticator.Register(request.Username, request.Password);
         if (user == null) return TypedResults.BadRequest(new ApiResponse<RegisterResponse?>
         {
             ComponentName = "Authenticator",
             Success = false,
             Error = new UsernameAlreadyTakenError(),
-            Result = null,
         });
         
         return TypedResults.Ok(new ApiResponse<RegisterResponse>
@@ -56,11 +90,10 @@ app.MapPost("/register", IResult (IBasicAuthenticator authenticator, RegisterReq
             ComponentName = "Authenticator",
             Success = true,
             Result = new RegisterResponse(user.UserId, user.Username),
-            Error = null,
         });
     })
     .Produces<ApiResponse<RegisterResponse>>()
     .Produces<ApiResponse<RegisterResponse?>>(StatusCodes.Status400BadRequest)
     .WithName("Register");
 
-app.Run();
+api.Run();

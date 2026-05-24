@@ -1,3 +1,3 @@
 ﻿namespace AuthenticationApi.Models;
 
-public record LoginRequest(string username, string password);
+public record LoginRequest(string Username, string Password);
