@@ -18,19 +18,19 @@ public class Sha256BasicAuthenticator : IBasicAuthenticator
         new(0, "admin", "sample_", "uo+L7ULDISZOkFUw3CH0a4vcbW9Ee/X4bgLcex+FWec="),
     ];
 
-    private readonly Dictionary<int, Token> _validTokens = new();
+    private Dictionary<int, Token> _validTokens = new();
 
     public Token? Login(string username, string password)
     {
-        var user = _users.Find(x => x.Username == username);
+        var user = _users.FirstOrDefault(x => x.Username == username);
         
         if (user == null) return null;
         if (user.PasswordHash != HashPassword(password, user.Salt)) return null;
         
-        if (_validTokens.TryGetValue(user.UserId, out var loginToken)) return loginToken;
+        if (_validTokens.TryGetValue(user.UserId, out var loginToken)) return loginToken!;
             
         var tokenString = GenerateRandomString(TokenLength);
-        var expirationDate = DateTime.UtcNow + TimeSpan.FromMinutes(TokenExpirationMinutes);
+        var expirationDate = DateTime.Now + TimeSpan.FromMinutes(TokenExpirationMinutes);
         var token = new Token(tokenString, expirationDate);
         _validTokens.Add(user.UserId, token);
         return token;
